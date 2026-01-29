@@ -1,0 +1,1467 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🍕 Restaurant - Command Center</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Leaflet CSS for Maps -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #12121a;
+        --bg-card: #1a1a25;
+        --bg-card-hover: #22222f;
+        --bg-modal: #15151f;
+        --accent-primary: #ff4757;
+        --accent-secondary: #5352ed;
+        --accent-success: #2ed573;
+        --accent-warning: #ffa502;
+        --accent-info: #1e90ff;
+        --accent-purple: #a55eea;
+        --accent-cyan: #00d2d3;
+        --text-primary: #ffffff;
+        --text-secondary: #a0a0b0;
+        --text-muted: #6c6c7c;
+        --border-color: #2a2a3a;
+        --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        --shadow-glow: 0 0 40px rgba(255, 71, 87, 0.2);
+        --gradient-primary: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
+        --gradient-success: linear-gradient(135deg, #2ed573 0%, #7bed9f 100%);
+        --gradient-info: linear-gradient(135deg, #1e90ff 0%, #70a1ff 100%);
+        --gradient-purple: linear-gradient(135deg, #a55eea 0%, #d980fa 100%);
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Animated Background */
+      .bg-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background:
+          radial-gradient(
+            ellipse at 10% 10%,
+            rgba(255, 71, 87, 0.1) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 90% 90%,
+            rgba(83, 82, 237, 0.1) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 50% 50%,
+            rgba(165, 94, 234, 0.05) 0%,
+            transparent 60%
+          );
+        animation: bgPulse 10s ease-in-out infinite;
+      }
+
+      @keyframes bgPulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      /* Header */
+      .header {
+        background: linear-gradient(
+          180deg,
+          var(--bg-secondary) 0%,
+          transparent 100%
+        );
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(20px);
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .logo-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--gradient-primary);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
+        animation: logoFloat 3s ease-in-out infinite;
+      }
+
+      @keyframes logoFloat {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-3px);
+        }
+      }
+
+      .logo-text h1 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #fff 0%, #ccc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .logo-text span {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+      }
+
+      .env-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .env-badge.development {
+        background: rgba(255, 165, 2, 0.15);
+        color: var(--accent-warning);
+        border: 1px solid rgba(255, 165, 2, 0.3);
+      }
+
+      .env-badge.production {
+        background: rgba(46, 213, 115, 0.15);
+        color: var(--accent-success);
+        border: 1px solid rgba(46, 213, 115, 0.3);
+      }
+
+      .live-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 1rem;
+        background: rgba(46, 213, 115, 0.1);
+        border: 1px solid rgba(46, 213, 115, 0.3);
+        border-radius: 50px;
+        font-size: 0.8rem;
+        color: var(--accent-success);
+      }
+
+      .live-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--accent-success);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          box-shadow: 0 0 0 0 rgba(46, 213, 115, 0.4);
+        }
+        50% {
+          opacity: 0.8;
+          box-shadow: 0 0 0 8px rgba(46, 213, 115, 0);
+        }
+      }
+
+      .current-time {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Main Container */
+      .container {
+        max-width: 1800px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      /* Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--card-gradient);
+        opacity: 0.8;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        border-color: transparent;
+        box-shadow: var(--shadow-glow);
+      }
+
+      .stat-card.revenue {
+        --card-gradient: var(--gradient-success);
+      }
+      .stat-card.orders {
+        --card-gradient: var(--gradient-info);
+      }
+      .stat-card.pending {
+        --card-gradient: linear-gradient(135deg, #ffa502 0%, #ff7f50 100%);
+      }
+      .stat-card.delivered {
+        --card-gradient: var(--gradient-purple);
+      }
+
+      .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+      }
+
+      .stat-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+      }
+
+      .stat-card.revenue .stat-icon {
+        background: rgba(46, 213, 115, 0.15);
+        color: var(--accent-success);
+      }
+      .stat-card.orders .stat-icon {
+        background: rgba(30, 144, 255, 0.15);
+        color: var(--accent-info);
+      }
+      .stat-card.pending .stat-icon {
+        background: rgba(255, 165, 2, 0.15);
+        color: var(--accent-warning);
+      }
+      .stat-card.delivered .stat-icon {
+        background: rgba(165, 94, 234, 0.15);
+        color: var(--accent-purple);
+      }
+
+      .stat-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 50px;
+        font-weight: 600;
+      }
+
+      .stat-trend.up {
+        background: rgba(46, 213, 115, 0.15);
+        color: var(--accent-success);
+      }
+      .stat-trend.down {
+        background: rgba(255, 71, 87, 0.15);
+        color: var(--accent-primary);
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.3rem;
+        background: linear-gradient(135deg, #fff 0%, #999 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      /* Content Grid */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1.5rem;
+      }
+
+      @media (max-width: 1400px) {
+        .content-grid {
+          grid-template-columns: 1fr 350px;
+        }
+      }
+
+      @media (max-width: 1100px) {
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Panel Styles */
+      .panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+
+      .panel-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      .panel-title {
+        font-size: 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .panel-title i {
+        color: var(--accent-primary);
+      }
+
+      .panel-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: inherit;
+      }
+
+      .btn-primary {
+        background: var(--gradient-primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 25px rgba(255, 71, 87, 0.4);
+      }
+
+      .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
+      }
+
+      /* Orders Table */
+      .orders-container {
+        max-height: 600px;
+        overflow-y: auto;
+      }
+
+      .orders-container::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .orders-container::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+      }
+
+      .orders-container::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+      }
+
+      .order-item {
+        border-bottom: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+      }
+
+      .order-item:hover {
+        background: rgba(255, 71, 87, 0.03);
+      }
+
+      .order-header {
+        display: grid;
+        grid-template-columns: 80px 1.5fr 1fr 100px 100px 60px;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        gap: 1rem;
+      }
+
+      .order-header:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .order-id {
+        font-weight: 700;
+        color: var(--accent-info);
+        font-size: 0.9rem;
+      }
+
+      .customer-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .customer-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: var(--gradient-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: white;
+      }
+
+      .customer-details {
+        overflow: hidden;
+      }
+
+      .customer-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .customer-phone {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .order-items-preview {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+
+      .order-amount {
+        font-weight: 700;
+        color: var(--accent-success);
+        font-size: 1rem;
+      }
+
+      .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+      }
+
+      .status-paid {
+        background: rgba(46, 213, 115, 0.15);
+        color: var(--accent-success);
+      }
+      .status-pending {
+        background: rgba(255, 165, 2, 0.15);
+        color: var(--accent-warning);
+      }
+      .status-preparing {
+        background: rgba(30, 144, 255, 0.15);
+        color: var(--accent-info);
+      }
+      .status-delivered {
+        background: rgba(165, 94, 234, 0.15);
+        color: var(--accent-purple);
+      }
+      .status-failed {
+        background: rgba(255, 71, 87, 0.15);
+        color: var(--accent-primary);
+      }
+
+      .expand-icon {
+        color: var(--text-muted);
+        transition: transform 0.3s ease;
+      }
+
+      .order-item.expanded .expand-icon {
+        transform: rotate(180deg);
+      }
+
+      /* Order Details (Expandable) */
+      .order-details {
+        max-height: 0;
+        overflow: hidden;
+        transition:
+          max-height 0.4s ease,
+          padding 0.4s ease;
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      .order-item.expanded .order-details {
+        max-height: 600px;
+        padding: 1.5rem;
+      }
+
+      .order-details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+
+      @media (max-width: 900px) {
+        .order-details-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .detail-section {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+      }
+
+      .detail-section h4 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .detail-section h4 i {
+        color: var(--accent-primary);
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.85rem;
+      }
+
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .detail-row .label {
+        color: var(--text-muted);
+      }
+
+      .detail-row .value {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .items-list {
+        list-style: none;
+      }
+
+      .items-list li {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.85rem;
+      }
+
+      .items-list li:last-child {
+        border-bottom: none;
+      }
+
+      .item-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .item-qty {
+        background: var(--accent-info);
+        color: white;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      .item-price {
+        color: var(--accent-success);
+        font-weight: 600;
+      }
+
+      /* Map Container */
+      .map-container {
+        height: 200px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        position: relative;
+      }
+
+      .map-container #map {
+        height: 100%;
+        width: 100%;
+      }
+
+      .map-placeholder {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-secondary);
+        color: var(--text-muted);
+      }
+
+      .map-placeholder i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        color: var(--accent-info);
+      }
+
+      /* Activity Panel */
+      .activity-feed {
+        padding: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .activity-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        transition: background 0.3s ease;
+        margin-bottom: 0.5rem;
+      }
+
+      .activity-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .activity-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+
+      .activity-icon.order {
+        background: rgba(30, 144, 255, 0.15);
+        color: var(--accent-info);
+      }
+      .activity-icon.payment {
+        background: rgba(46, 213, 115, 0.15);
+        color: var(--accent-success);
+      }
+      .activity-icon.delivery {
+        background: rgba(165, 94, 234, 0.15);
+        color: var(--accent-purple);
+      }
+
+      .activity-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .activity-text {
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        line-height: 1.4;
+      }
+
+      .activity-text strong {
+        color: var(--text-primary);
+      }
+
+      .activity-time {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+
+      /* Quick Stats */
+      .quick-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .quick-stat {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+      }
+
+      .quick-stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, #999 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .quick-stat-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 0.25rem;
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-muted);
+      }
+
+      .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+      }
+
+      .empty-state p {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .empty-state small {
+        font-size: 0.85rem;
+        opacity: 0.7;
+      }
+
+      /* Loading Animation */
+      .loading-skeleton {
+        background: linear-gradient(
+          90deg,
+          var(--bg-card) 25%,
+          var(--bg-card-hover) 50%,
+          var(--bg-card) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .refreshing {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        border-top: 1px solid var(--border-color);
+        margin-top: 2rem;
+      }
+
+      .footer a {
+        color: var(--accent-primary);
+        text-decoration: none;
+      }
+
+      .footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .header {
+          flex-direction: column;
+          gap: 1rem;
+          padding: 1rem;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .container {
+          padding: 1rem;
+        }
+
+        .order-header {
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+        }
+
+        .order-details-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Table Header */
+      .table-header {
+        display: grid;
+        grid-template-columns: 80px 1.5fr 1fr 100px 100px 60px;
+        padding: 0.75rem 1.5rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid var(--border-color);
+        gap: 1rem;
+      }
+
+      .table-header span {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      @media (max-width: 900px) {
+        .table-header {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-animation"></div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">🍕</div>
+        <div class="logo-text">
+          <h1>Restaurant</h1>
+          <span>Command Center</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="env-badge development" id="envBadge">Development</div>
+        <div class="live-indicator">
+          <div class="live-dot"></div>
+          <span>Live</span>
+        </div>
+        <div class="current-time" id="currentTime">--:--:--</div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card revenue">
+          <div class="stat-header">
+            <div class="stat-icon">
+              <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-trend up">
+              <i class="fas fa-arrow-up"></i>
+              <span>12.5%</span>
+            </div>
+          </div>
+          <div class="stat-value" id="todayRevenue">$0.00</div>
+          <div class="stat-label">Today's Revenue</div>
+        </div>
+
+        <div class="stat-card orders">
+          <div class="stat-header">
+            <div class="stat-icon">
+              <i class="fas fa-shopping-bag"></i>
+            </div>
+            <div class="stat-trend up">
+              <i class="fas fa-arrow-up"></i>
+              <span>8.2%</span>
+            </div>
+          </div>
+          <div class="stat-value" id="totalOrders">0</div>
+          <div class="stat-label">Total Orders</div>
+        </div>
+
+        <div class="stat-card pending">
+          <div class="stat-header">
+            <div class="stat-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-trend down">
+              <i class="fas fa-arrow-down"></i>
+              <span>3.1%</span>
+            </div>
+          </div>
+          <div class="stat-value" id="pendingOrders">0</div>
+          <div class="stat-label">In Progress</div>
+        </div>
+
+        <div class="stat-card delivered">
+          <div class="stat-header">
+            <div class="stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-trend up">
+              <i class="fas fa-arrow-up"></i>
+              <span>15.3%</span>
+            </div>
+          </div>
+          <div class="stat-value" id="deliveredOrders">0</div>
+          <div class="stat-label">Delivered</div>
+        </div>
+      </div>
+
+      <!-- Content Grid -->
+      <div class="content-grid">
+        <!-- Orders Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fas fa-receipt"></i>
+              Recent Orders
+            </div>
+            <div class="panel-actions">
+              <button class="btn btn-secondary" onclick="refreshData()">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                Refresh
+              </button>
+              <button
+                class="btn btn-primary"
+                onclick="window.location.href = '/docs'"
+              >
+                <i class="fas fa-plus"></i>
+                New Order
+              </button>
+            </div>
+          </div>
+
+          <!-- Table Header -->
+          <div class="table-header">
+            <span>Order</span>
+            <span>Customer</span>
+            <span>Items</span>
+            <span>Amount</span>
+            <span>Status</span>
+            <span></span>
+          </div>
+
+          <div class="orders-container" id="ordersContainer">
+            <!-- Orders will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Activity Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fas fa-bolt"></i>
+              Live Activity
+            </div>
+          </div>
+          <div class="activity-feed" id="activityFeed">
+            <!-- Activity items will be loaded here -->
+          </div>
+          <div class="quick-stats">
+            <div class="quick-stat">
+              <div class="quick-stat-value" id="avgOrderValue">$0</div>
+              <div class="quick-stat-label">Avg Order</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-value" id="successRate">0%</div>
+              <div class="quick-stat-label">Success Rate</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        Restaurant Ordering System v1.0 • Built By Khalil_Bannouri •
+      </p>
+      <p>Hybrid Architecture: Mock Services (Dev) ↔ Real APIs (Prod)</p>
+    </footer>
+
+    <!-- Leaflet JS for Maps -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      // =====================================================================
+      // GLOBAL STATE
+      // =====================================================================
+      let ordersData = [];
+      let expandedOrderId = null;
+      let maps = {};
+
+      // =====================================================================
+      // TIME UPDATE
+      // =====================================================================
+      function updateTime() {
+        const now = new Date();
+        document.getElementById("currentTime").textContent =
+          now.toLocaleTimeString("en-US", { hour12: true });
+      }
+      setInterval(updateTime, 1000);
+      updateTime();
+
+      // =====================================================================
+      // FETCH DATA
+      // =====================================================================
+      async function fetchDashboardData() {
+        try {
+          const response = await fetch("/api/dashboard-data");
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          return null;
+        }
+      }
+
+      // =====================================================================
+      // UPDATE STATS
+      // =====================================================================
+      function updateStats(data) {
+        if (!data) return;
+
+        document.getElementById("todayRevenue").textContent =
+          `$${data.today_revenue.toFixed(2)}`;
+        document.getElementById("totalOrders").textContent = data.total_orders;
+        document.getElementById("pendingOrders").textContent =
+          data.pending_orders;
+        document.getElementById("deliveredOrders").textContent =
+          data.delivered_orders;
+        document.getElementById("avgOrderValue").textContent =
+          `$${data.avg_order_value.toFixed(0)}`;
+        document.getElementById("successRate").textContent =
+          `${data.success_rate}%`;
+
+        // Update environment badge
+        const envBadge = document.getElementById("envBadge");
+        if (data.environment) {
+          envBadge.textContent =
+            data.environment.charAt(0).toUpperCase() +
+            data.environment.slice(1);
+          envBadge.className = `env-badge ${data.environment}`;
+        }
+      }
+
+      // =====================================================================
+      // PARSE ITEMS
+      // =====================================================================
+      function parseItems(itemsStr) {
+        try {
+          return JSON.parse(itemsStr || "[]");
+        } catch {
+          return [];
+        }
+      }
+
+      // =====================================================================
+      // RENDER ORDERS
+      // =====================================================================
+      function renderOrders(orders) {
+        const container = document.getElementById("ordersContainer");
+        ordersData = orders;
+
+        if (!orders || orders.length === 0) {
+          container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No orders yet</p>
+                        <small>Create orders via the API or run the simulation</small>
+                    </div>
+                `;
+          return;
+        }
+
+        container.innerHTML = orders
+          .map((order) => {
+            const initials = order.customer_name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase();
+            const items = parseItems(order.items);
+            const itemCount = items.reduce(
+              (sum, item) => sum + (item.quantity || 1),
+              0,
+            );
+            const isExpanded = expandedOrderId === order.id;
+
+            return `
+                    <div class="order-item ${isExpanded ? "expanded" : ""}" data-order-id="${order.id}">
+                        <div class="order-header" onclick="toggleOrder(${order.id})">
+                            <div class="order-id">#${order.id}</div>
+                            <div class="customer-info">
+                                <div class="customer-avatar">${initials}</div>
+                                <div class="customer-details">
+                                    <div class="customer-name">${order.customer_name}</div>
+                                    <div class="customer-phone">${order.customer_phone}</div>
+                                </div>
+                            </div>
+                            <div class="order-items-preview">${itemCount} item${itemCount !== 1 ? "s" : ""}</div>
+                            <div class="order-amount">$${order.total_amount.toFixed(2)}</div>
+                            <div class="status-badge status-${order.status.toLowerCase()}">${order.status}</div>
+                            <div class="expand-icon">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="order-details">
+                            ${renderOrderDetails(order)}
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+      }
+
+      // =====================================================================
+      // RENDER ORDER DETAILS
+      // =====================================================================
+      function renderOrderDetails(order) {
+        const items = parseItems(order.items);
+        const createdAt = new Date(order.created_at);
+
+        // Generate random coordinates for NYC (mock)
+        const lat = 40.7128 + (Math.random() - 0.5) * 0.05;
+        const lng = -74.006 + (Math.random() - 0.5) * 0.05;
+
+        return `
+                <div class="order-details-grid">
+                    <div class="detail-section">
+                        <h4><i class="fas fa-user"></i> Customer Details</h4>
+                        <div class="detail-row">
+                            <span class="label">Name</span>
+                            <span class="value">${order.customer_name}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Phone</span>
+                            <span class="value">${order.customer_phone}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Address</span>
+                            <span class="value">${order.delivery_address || "N/A"}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Order Time</span>
+                            <span class="value">${createdAt.toLocaleString()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4><i class="fas fa-map-marker-alt"></i> Delivery Location</h4>
+                        <div class="map-container">
+                            <div id="map-${order.id}" style="height: 100%; width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4><i class="fas fa-utensils"></i> Order Items</h4>
+                        <ul class="items-list">
+                            ${items
+                              .map(
+                                (item) => `
+                                <li>
+                                    <span class="item-name">
+                                        <span class="item-qty">${item.quantity}x</span>
+                                        ${item.name}
+                                    </span>
+                                    <span class="item-price">$${(item.quantity * item.unit_price).toFixed(2)}</span>
+                                </li>
+                            `,
+                              )
+                              .join("")}
+                        </ul>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4><i class="fas fa-receipt"></i> Payment Summary</h4>
+                        <div class="detail-row">
+                            <span class="label">Subtotal</span>
+                            <span class="value">$${(order.subtotal || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Tax</span>
+                            <span class="value">$${(order.tax || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Delivery Fee</span>
+                            <span class="value">$${(order.delivery_fee || 5.99).toFixed(2)}</span>
+                        </div>
+                        <div class="detail-row" style="border-top: 2px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.5rem;">
+                            <span class="label" style="font-weight: 700; color: var(--text-primary);">Total</span>
+                            <span class="value" style="color: var(--accent-success); font-size: 1.1rem;">$${order.total_amount.toFixed(2)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Payment ID</span>
+                            <span class="value" style="font-size: 0.75rem; font-family: monospace;">${order.payment_intent_id || "N/A"}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+      }
+
+      // =====================================================================
+      // TOGGLE ORDER EXPANSION
+      // =====================================================================
+      function toggleOrder(orderId) {
+        const wasExpanded = expandedOrderId === orderId;
+        expandedOrderId = wasExpanded ? null : orderId;
+
+        // Re-render orders
+        renderOrders(ordersData);
+
+        // Initialize map if expanding
+        if (!wasExpanded) {
+          setTimeout(() => initializeMap(orderId), 100);
+        }
+      }
+
+      // =====================================================================
+      // INITIALIZE MAP
+      // =====================================================================
+      function initializeMap(orderId) {
+        const mapContainer = document.getElementById(`map-${orderId}`);
+        if (!mapContainer) return;
+
+        // Clean up existing map
+        if (maps[orderId]) {
+          maps[orderId].remove();
+        }
+
+        // Random NYC coordinates
+        const lat = 40.7128 + (Math.random() - 0.5) * 0.05;
+        const lng = -74.006 + (Math.random() - 0.5) * 0.05;
+
+        // Create map
+        const map = L.map(`map-${orderId}`).setView([lat, lng], 15);
+
+        // Add dark tile layer
+        L.tileLayer(
+          "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+          {
+            attribution:
+              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: "abcd",
+            maxZoom: 19,
+          },
+        ).addTo(map);
+
+        // Add marker
+        const marker = L.marker([lat, lng]).addTo(map);
+        marker
+          .bindPopup(`<b>Delivery Location</b><br>Order #${orderId}`)
+          .openPopup();
+
+        // Add circle to show delivery area
+        L.circle([lat, lng], {
+          color: "#ff4757",
+          fillColor: "#ff4757",
+          fillOpacity: 0.2,
+          radius: 100,
+        }).addTo(map);
+
+        // Store reference
+        maps[orderId] = map;
+
+        // Force resize after render
+        setTimeout(() => map.invalidateSize(), 200);
+      }
+
+      // =====================================================================
+      // RENDER ACTIVITY FEED
+      // =====================================================================
+      function renderActivityFeed(orders) {
+        const feed = document.getElementById("activityFeed");
+
+        if (!orders || orders.length === 0) {
+          feed.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>No activity yet</p>
+                    </div>
+                `;
+          return;
+        }
+
+        const activities = orders
+          .slice(0, 8)
+          .map((order) => {
+            const icons = {
+              paid: { class: "payment", icon: "fa-credit-card" },
+              preparing: { class: "order", icon: "fa-utensils" },
+              delivered: { class: "delivery", icon: "fa-truck" },
+              pending: { class: "order", icon: "fa-clock" },
+              failed: { class: "order", icon: "fa-times-circle" },
+            };
+            const config = icons[order.status.toLowerCase()] || icons.pending;
+            const timeAgo = getTimeAgo(new Date(order.created_at));
+
+            return `
+                    <div class="activity-item">
+                        <div class="activity-icon ${config.class}">
+                            <i class="fas ${config.icon}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-text">
+                                <strong>${order.customer_name}</strong> placed order #${order.id} for <strong>$${order.total_amount.toFixed(2)}</strong>
+                            </div>
+                            <div class="activity-time">${timeAgo}</div>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+
+        feed.innerHTML = activities;
+      }
+
+      // =====================================================================
+      // TIME AGO HELPER
+      // =====================================================================
+      function getTimeAgo(date) {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        if (seconds < 60) return "Just now";
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+        return `${Math.floor(seconds / 86400)}d ago`;
+      }
+
+      // =====================================================================
+      // REFRESH DATA
+      // =====================================================================
+      async function refreshData() {
+        const icon = document.getElementById("refreshIcon");
+        icon.classList.add("refreshing");
+
+        const data = await fetchDashboardData();
+        if (data) {
+          updateStats(data);
+          renderOrders(data.recent_orders);
+          renderActivityFeed(data.recent_orders);
+        }
+
+        setTimeout(() => icon.classList.remove("refreshing"), 500);
+      }
+
+      // =====================================================================
+      // INITIAL LOAD
+      // =====================================================================
+      refreshData();
+
+      // Auto-refresh every 10 seconds
+      setInterval(refreshData, 10000);
+    </script>
+  </body>
+</html>
