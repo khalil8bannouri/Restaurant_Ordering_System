@@ -367,25 +367,25 @@ text
            │ Database  │   │  Export   │   │  System   │
            └───────────┘   └───────────┘   └───────────┘
 🛠️ Tech Stack
-Component	Technology
-Backend	Python 3.10+, FastAPI
-Voice AI	Vapi.ai
-Database	PostgreSQL 15
-Queue	Redis 7, Celery 5
-Payments	Stripe
-SMS	Twilio
-Email	SendGrid
-Maps	Google Maps
-Excel	Pandas, OpenPyXL
-Locking	FileLock
-Container	Docker
+Component : 	Technology
+Backend : 	Python 3.10+, FastAPI
+Voice AI :	Vapi.ai
+Database :	PostgreSQL 15
+Queue :	Redis 7, Celery 5
+Payments :	Stripe
+SMS	  :  Twilio
+Email : 	SendGrid
+Maps  :	Google Maps
+Excel :	Pandas, OpenPyXL
+Locking  :  FileLock
+Container : 	Docker
 📈 Performance
-Metric	Result
-Concurrent Calls	50+
-Response Time	< 1 second
-AI Success Rate	88%+
-Data Integrity	100%
-Uptime	99.9%
+Metric  :	Result
+Concurrent  :  Calls 50+
+Response  :  Time < 1 second
+AI Success Rate  : 	88%+
+Data Integrity  : 	100%
+Uptime : 	99.9%
 📄 License
 MIT License - See LICENSE
 
