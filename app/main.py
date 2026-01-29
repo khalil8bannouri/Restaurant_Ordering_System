@@ -12,7 +12,6 @@ AI Restaurant Phone Ordering System with:
 Author: Khalil Bannouri
 Version: 3.0.0
 """
-
 import asyncio
 import sys
 import json
@@ -46,6 +45,7 @@ from app.schemas import (
     CallLogResponse,
     ErrorResponse,
     HealthResponse,
+    OrderTypeEnum,
     SendPaymentLinkRequest,
     NotificationResponse,
     KitchenOrderRequest,
