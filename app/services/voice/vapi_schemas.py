@@ -1,24 +1,18 @@
 """
 Vapi.ai Webhook Payload Schemas
 
-Defines Pydantic models for parsing and validating Vapi webhook payloads.
-These schemas match the structure documented in Vapi's API documentation.
+Enhanced for full restaurant ordering with:
+- Multi-language detection
+- Pickup/Delivery selection
+- Human transfer support
+- Call transcription storage
 
-Vapi Webhook Events:
-    - function-call: AI requests to execute a tool (e.g., check_address)
-    - end-of-call-report: Call completed with transcript
-    - status-update: Call status changes
-    - transcript: Real-time transcription updates
-
-Reference:
-    https://docs.vapi.ai/webhooks
-
-Author: Your Name
-Version: 2.0.0
+Author: Khalil Bannouri
+Version: 3.0.0
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Any
+from typing import Optional, Any, List
 from datetime import datetime
 from enum import Enum
 
@@ -32,6 +26,7 @@ class VapiMessageType(str, Enum):
     HANG = "hang"
     SPEECH_UPDATE = "speech-update"
     CONVERSATION_UPDATE = "conversation-update"
+    TRANSFER_REQUEST = "transfer-request"
 
 
 class VapiCallStatus(str, Enum):
@@ -43,32 +38,23 @@ class VapiCallStatus(str, Enum):
     ENDED = "ended"
 
 
+class DetectedLanguage(str, Enum):
+    """Supported languages for auto-detection."""
+    ENGLISH = "en"
+    SPANISH = "es"
+    FRENCH = "fr"
+    CHINESE = "zh"
+    ARABIC = "ar"
+    PORTUGUESE = "pt"
+    RUSSIAN = "ru"
+    JAPANESE = "ja"
+    KOREAN = "ko"
+    GERMAN = "de"
+    ITALIAN = "it"
+
+
 class FunctionCallPayload(BaseModel):
-    """
-    Payload for function-call webhook events.
-    
-    Sent when the AI assistant wants to execute a tool/function.
-    Our server must execute the function and return the result.
-    
-    Example payload:
-        {
-            "type": "function-call",
-            "functionCall": {
-                "name": "check_delivery_address",
-                "parameters": {
-                    "address": "350 Fifth Avenue",
-                    "city": "New York",
-                    "zip_code": "10001"
-                }
-            },
-            "call": {
-                "id": "call_abc123",
-                "customer": {
-                    "number": "+15551234567"
-                }
-            }
-        }
-    """
+    """Payload for function-call webhook events."""
     name: str = Field(..., description="Name of the function to call")
     parameters: dict[str, Any] = Field(
         default_factory=dict,
@@ -109,57 +95,47 @@ class TranscriptMessage(BaseModel):
 
 
 class EndOfCallReport(BaseModel):
-    """
-    Payload for end-of-call-report webhook events.
-    
-    Sent when a call ends, containing the full transcript
-    and call summary.
-    """
+    """Payload for end-of-call-report webhook events."""
     call: CallInfo
     transcript: Optional[str] = Field(None, description="Full transcript text")
-    messages: list[TranscriptMessage] = Field(
+    messages: List[TranscriptMessage] = Field(
         default_factory=list,
         description="Structured transcript messages"
     )
     summary: Optional[str] = Field(None, description="AI-generated call summary")
     recording_url: Optional[str] = Field(None, alias="recordingUrl")
+    duration_seconds: Optional[int] = Field(None, alias="durationSeconds")
+    detected_language: Optional[str] = Field(None, alias="detectedLanguage")
     
     class Config:
         populate_by_name = True
 
 
 class VapiWebhookPayload(BaseModel):
-    """
-    Main Vapi webhook payload structure.
-    
-    This is the root model that all Vapi webhooks conform to.
-    The `type` field determines which sub-payload is present.
-    
-    Usage:
-        payload = VapiWebhookPayload(**request_json)
-        if payload.type == VapiMessageType.FUNCTION_CALL:
-            # Handle function call
-            func_name = payload.function_call.name
-    """
+    """Main Vapi webhook payload structure."""
     type: VapiMessageType = Field(..., alias="type")
     
     # Function call specific
-    function_call: Optional[FunctionCallPayload] = Field(
-        None, 
-        alias="functionCall"
-    )
+    function_call: Optional[FunctionCallPayload] = Field(None, alias="functionCall")
     
-    # Call information (present in most events)
+    # Call information
     call: Optional[CallInfo] = None
     
     # End of call report specific
     transcript: Optional[str] = None
-    messages: list[TranscriptMessage] = Field(default_factory=list)
+    messages: List[TranscriptMessage] = Field(default_factory=list)
     summary: Optional[str] = None
     recording_url: Optional[str] = Field(None, alias="recordingUrl")
+    duration_seconds: Optional[int] = Field(None, alias="durationSeconds")
+    
+    # Language detection
+    detected_language: Optional[str] = Field(None, alias="detectedLanguage")
     
     # Status update specific
     status: Optional[VapiCallStatus] = None
+    
+    # Transfer specific
+    transfer_destination: Optional[str] = Field(None, alias="transferDestination")
     
     class Config:
         populate_by_name = True
@@ -167,29 +143,12 @@ class VapiWebhookPayload(BaseModel):
 
 
 class VapiFunctionResponse(BaseModel):
-    """
-    Response format for Vapi function calls.
-    
-    When Vapi calls a function, we must respond with this structure
-    so the AI can continue the conversation with the result.
-    
-    Example response:
-        {
-            "result": {
-                "success": true,
-                "message": "Address validated successfully",
-                "data": {"formatted_address": "350 5th Ave, New York, NY 10001"}
-            }
-        }
-    """
-    result: dict[str, Any] = Field(
-        ...,
-        description="Result data to return to the AI assistant"
-    )
+    """Response format for Vapi function calls."""
+    result: dict[str, Any] = Field(..., description="Result data to return to AI")
 
 
 # =============================================================================
-# ORDER DATA SCHEMAS (Extracted from Vapi conversation)
+# ORDER DATA SCHEMAS
 # =============================================================================
 
 class OrderItem(BaseModel):
@@ -197,7 +156,7 @@ class OrderItem(BaseModel):
     name: str
     quantity: int = 1
     unit_price: float
-    special_instructions: Optional[str] = None
+    special_requests: Optional[str] = None
     
     @property
     def total_price(self) -> float:
@@ -205,21 +164,40 @@ class OrderItem(BaseModel):
 
 
 class ExtractedOrderData(BaseModel):
-    """
-    Order data extracted from Vapi conversation.
-    
-    This is constructed from the function call parameters
-    during the order placement flow.
-    """
+    """Order data extracted from Vapi conversation."""
+    order_type: str = "delivery"  # pickup or delivery
     customer_name: str
     customer_phone: str
-    delivery_address: str
+    customer_email: Optional[str] = None
+    customer_language: str = "en"
+    
+    # Delivery fields
+    delivery_address: Optional[str] = None
     city: str = "New York"
-    zip_code: str
-    items: list[OrderItem]
+    state: str = "NY"
+    zip_code: Optional[str] = None
+    delivery_instructions: Optional[str] = None
+    
+    # Pickup fields
+    pickup_time: Optional[str] = None
+    
+    # Order
+    items: List[OrderItem] = []
     special_instructions: Optional[str] = None
+    
+    # Payment
     payment_method: str = "card"
+    tip: float = 0.0
     
     @property
     def subtotal(self) -> float:
         return round(sum(item.total_price for item in self.items), 2)
+
+
+class TransferRequest(BaseModel):
+    """Request to transfer call to human agent."""
+    call_id: str
+    reason: str
+    transcription_so_far: Optional[str] = None
+    customer_phone: Optional[str] = None
+    detected_language: str = "en"

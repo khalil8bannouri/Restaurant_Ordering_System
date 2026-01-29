@@ -186,6 +186,53 @@ class Settings(BaseSettings):
         description="Vapi assistant ID for outbound calls"
     )
     
+        # ==========================================================================
+    # TWILIO (SMS)
+    # ==========================================================================
+    
+    twilio_account_sid: Optional[str] = Field(
+        default=None,
+        description="Twilio Account SID"
+    )
+    twilio_auth_token: Optional[str] = Field(
+        default=None,
+        description="Twilio Auth Token"
+    )
+    twilio_phone_number: Optional[str] = Field(
+        default=None,
+        description="Twilio phone number for sending SMS"
+    )
+    
+    # ==========================================================================
+    # SENDGRID (EMAIL)
+    # ==========================================================================
+    
+    sendgrid_api_key: Optional[str] = Field(
+        default=None,
+        description="SendGrid API Key"
+    )
+    sendgrid_from_email: str = Field(
+        default="orders@restaurant.com",
+        description="From email address for SendGrid"
+    )
+    
+    # ==========================================================================
+    # APPLICATION URLs
+    # ==========================================================================
+    
+    app_base_url: str = Field(
+        default="http://localhost:8001",
+        description="Base URL for the application"
+    )
+    
+    # ==========================================================================
+    # HUMAN TRANSFER
+    # ==========================================================================
+    
+    human_transfer_number: Optional[str] = Field(
+        default=None,
+        description="Phone number to transfer calls to human agents"
+    )
     # ==========================================================================
     # BUSINESS CONFIGURATION
     # ==========================================================================
